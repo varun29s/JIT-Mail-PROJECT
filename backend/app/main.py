@@ -12,7 +12,10 @@ app = FastAPI(title="Gmail Clone API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    # localhost and 127.0.0.1 are different origins as far as CORS is concerned,
+    # even though they point at the same Vite dev server - allow both so the
+    # frontend isn't silently rejected depending on which one the browser used.
+    allow_origins=[settings.frontend_origin, settings.frontend_origin.replace("localhost", "127.0.0.1")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
