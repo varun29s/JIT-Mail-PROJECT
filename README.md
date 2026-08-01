@@ -1,13 +1,13 @@
 # Gmail Clone
 
-A full-stack Gmail-style webmail clone built as a learning project: a FastAPI backend with JWT auth and SQLite, a React + TypeScript (Vite) frontend styled after Gmail, and two small ML models (spam detection, priority scoring) run inline inside the backend — no separate ML service.
+A full-stack Gmail-style webmail clone built as a learning project: a FastAPI backend with JWT auth and SQLite/Postgres, a React + TypeScript (Vite) frontend styled after Gmail, and two small ML models (spam detection, priority scoring) run inline inside the backend — no separate ML service.
 
 ## Stack
 
 | Layer    | Tech |
 |----------|------|
 | Frontend | React 19, TypeScript, Vite, React Router |
-| Backend  | FastAPI, SQLAlchemy 2.0, SQLite, JWT (python-jose), bcrypt (passlib) |
+| Backend  | FastAPI, SQLAlchemy 2.0, SQLite or Postgres (e.g. Neon), JWT (python-jose), bcrypt (passlib) |
 | ML       | scikit-learn models (spam classifier + priority regressor), loaded from `.pkl` artifacts at backend import time |
 
 ## Project structure
@@ -35,7 +35,7 @@ pip install -r requirements.txt
 copy .env.example .env       # Windows: copy, macOS/Linux: cp .env.example .env
 ```
 
-Edit `.env` and set a real `SECRET_KEY` (any long random string works for local dev).
+Edit `.env` and set a real `SECRET_KEY` (any long random string works for local dev). `DATABASE_URL` defaults to a local SQLite file; point it at a Postgres connection string instead (e.g. a Neon `postgresql://...` URL) to use Postgres — no code changes needed either way.
 
 ```bash
 uvicorn app.main:app --reload
@@ -43,7 +43,7 @@ uvicorn app.main:app --reload
 
 - API: http://localhost:8000
 - Swagger UI: http://localhost:8000/docs
-- SQLite tables are created automatically on first run.
+- Tables are created automatically on first run (SQLite or Postgres).
 
 ### 2. Frontend (React + Vite)
 
@@ -62,7 +62,9 @@ VITE_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
-- App: http://localhost:5173
+- App: http://localhost:5173 (or whatever port Vite prints — see the CORS note below if it's not 5173)
+
+> **CORS note:** the backend only accepts requests from the origin set in `FRONTEND_ORIGIN` (`backend/.env`), plus its `127.0.0.1` equivalent. If Vite starts on a different port (it auto-increments to 5174, 5175, ... when 5173 is already taken by another running instance), requests will fail with a CORS error until `FRONTEND_ORIGIN` is updated to match. Make sure only one `npm run dev` is running at a time to avoid this.
 
 ## Features
 
@@ -77,4 +79,4 @@ npm run dev
 
 - The backend `tests/` folder referenced in `backend/README.md` was removed from the repo (see git history) — there is currently no automated test suite to run.
 - `app/ml/inference.py` loads the three `.pkl` artifacts unconditionally at import time. The in-repo docs describe a lazy-load/stub-fallback behavior for missing artifacts that isn't actually implemented — it only works today because the trained `.pkl` files are committed under `backend/app/ml/artifacts/`.
-- No Alembic/migrations — schema changes currently mean dropping and recreating the local `.db` file.
+- No Alembic/migrations — schema changes mean dropping/recreating the local `.db` file (SQLite) or manually altering tables (Postgres).
